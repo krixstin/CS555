@@ -1,8 +1,10 @@
 #  Author: Team 6
 #  Name: Project 2
 #  Date: September 14th, 2020
+import sys
 
 from gedcom.parser import Parser
+import UniqueChecker
 from gedcom.element.element import Element
 from prettytable import PrettyTable
 from datetime import date
@@ -50,6 +52,8 @@ elements = gedcom_parser.get_element_list()
 
 # Iterate through all root child elements
 output = []
+ids = []
+famID = []
 key = ""
 for line in range(len(elements)):
 
@@ -81,9 +85,11 @@ for line in range(len(elements)):
         if tag not in INDI_DICT and INDI_FAM:
             key = tag
             INDI_DICT[key] = []
+            ids.append(key)
         elif tag not in FAM_DICT:
             key = tag
             FAM_DICT[key] = []
+            famID.append(key)
         output.append("<-- {}|{}|{}|{}\n".format(level, args, "Y", tag))
 
     #Unsupported Tags [1,DATE]/[2,NAME]
@@ -139,7 +145,14 @@ for line in range(len(elements)):
         #print(tag)
     else:
         output.append("<-- {}|{}|{}|{}\n".format(level, tag, "Y" if tag in VALID_TAGS else "N", args))
-    
+    if not UniqueChecker.uniqueID(ids):
+        print("Individuals do not have unique IDs")
+        sys.exit()
+    if not UniqueChecker.uniqueID(famID):
+        print("Families do not have unique IDs")
+        sys.exit()
+
+
     
 #pPrint Table 1
 file.writelines(output)
@@ -213,6 +226,9 @@ for x, y in FAM_DICT.items():
                 #print(x[1])
                 children.append(x[1].replace("@",""))
         #print(children)
+    if not UniqueChecker.uniqueFirstNameFam(children, INDI_DICT):
+        print("Children do not have unique names and birthdays")
+        sys.exit()
     output2.append(children)
     FAM_TABLE.add_row(output2)
 
