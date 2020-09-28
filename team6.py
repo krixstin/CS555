@@ -3,7 +3,6 @@
 #  Date: September 14th, 2020
 import sys
 
-
 def check_ages(self, fathers, mothers):
     for childrenAge in fathers[0]:
         if fathers[1] - 80 > childrenAge:
