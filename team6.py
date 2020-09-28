@@ -3,6 +3,16 @@
 #  Date: September 14th, 2020
 import sys
 
+
+def check_ages(self, fathers, mothers):
+    for childrenAge in fathers[0]:
+        if fathers[1] - 80 > childrenAge:
+            return False
+    for childrenAge in mothers[0]:
+        if mothers[1] - 60 > childrenAge:
+            return False
+    return True
+
 from gedcom.parser import Parser
 import UniqueChecker
 from gedcom.element.element import Element
