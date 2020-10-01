@@ -235,8 +235,13 @@ for x, y in FAM_DICT.items():
                 #print(x[1])
                 children.append(x[1].replace("@",""))
         #print(children)
+    #Checks for unique names and birthdays
     if not UniqueChecker.uniqueFirstNameFam(children, INDI_DICT):
         print("Children do not have unique names and birthdays")
+        sys.exit()
+    #User Story 15, Children cannot have more than 15 siblings
+    if len(children) > 15:
+        print("Greater than 15 siblings")
         sys.exit()
     output2.append(children)
     FAM_TABLE.add_row(output2)
