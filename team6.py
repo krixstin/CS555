@@ -73,6 +73,17 @@ def convertGedcomDate(datestring):
     return dt.strptime(datestring, "%d %b %Y")
 
 
+def processGedcom(file_path):
+    """Helper function for reading GEDCOM files when unit testing"""
+    gedcom_parser.parse_file(file_path, False)
+    elements = gedcom_parser.get_element_list()
+    root_child_elements = gedcom_parser.get_root_child_elements()
+
+    for element in root_child_elements:
+        if isinstance(element, IndividualElement):
+            return element
+
+
 def birthBeforeMarriage(individual):
     """US02 - Birth should occur before the marriage of an individual"""
     birthDate = individual.get_birth_data()[0]
@@ -88,6 +99,7 @@ def birthBeforeMarriage(individual):
             return False
         else:
             return True
+    return None
 
 
 def birthBeforeDeath(individual):
@@ -103,6 +115,7 @@ def birthBeforeDeath(individual):
             return False
         else:
             return True
+    return None
 
 
 def datesBeforeCurrentDate(individual):
@@ -113,29 +126,25 @@ def datesBeforeCurrentDate(individual):
 
     fams = gedcom_parser.get_families(individual)
     childElements = [(fam.get_child_elements()) for fam in fams]
-    divorceDates = [element.get_child_elements()[0].get_value() for elements in childElements for element in elements if element.get_tag() == "DIV"]
+    divorceDates = [element.get_child_elements()[0].get_value(
+    ) for elements in childElements for element in elements if element.get_tag() == "DIV"]
 
-    # divorceDates = []
-    # for elements in childElements:
-    #     for element in elements:
-    #         if element.get_tag() == 'DIV':
-    #             print(element.get_tag())
-    #             print("found divorce")
-    #             divorceDates.append(element.get_child_elements()[0].get_value())
-
-    latestDivorceDate = max(convertGedcomDate(date) for date in divorceDates) if divorceDates else None
-    latestMarriageDate = max(convertGedcomDate(date[0]) for date in marriageDates) if marriageDates else None
+    latestDivorceDate = max(convertGedcomDate(date)
+                            for date in divorceDates) if divorceDates else None
+    latestMarriageDate = max(convertGedcomDate(
+        date[0]) for date in marriageDates) if marriageDates else None
     birthdate = convertGedcomDate(birthdate) if birthdate else None
     deathdate = convertGedcomDate(deathdate) if deathdate else None
 
-    comparisonDates = [birthdate, deathdate, latestMarriageDate, latestDivorceDate]
-    
+    comparisonDates = [birthdate, deathdate,
+                       latestMarriageDate, latestDivorceDate]
+
     if any(day > dt.now() for day in comparisonDates if day):
-        print(f"Error US05: Date associated with {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs after current date")
+        print(
+            f"Error US05: Date associated with {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs after current date")
         return False
     else:
         return True
-
 
 
 def marriageBeforeDeath(individual):
