@@ -100,14 +100,35 @@ def birthBeforeDeath(individual):
             return True
 
 
+def datesBeforeCurrentDate(individual):
+    """US01 - Dates (birth, marriage, divorce, death) should not be after the current date"""
+    
+
+
+def marriageBeforeDeath(individual):
+    """US05 - Marriage should occur before death of either spouse"""
+    deathDate = individual.get_death_data()[0]
+    marriageDates = gedcom_parser.get_marriages(individual)
+
+    if marriageDates and birthDate:
+        latestMarriageDate = (max(datetime.strptime(
+            date[0], "%d %b %Y") for date in marriageDates))
+        birthDate = datetime.strptime(birthDate, "%d %b %Y")
+        if latestMarriageDate > deathDate:
+            print(
+                f"Error US05: Marriage of {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs after their death")
+            return False
+        else:
+            return True
+
+
 for element in root_child_elements:
-
-
     if isinstance(element, IndividualElement):
 
         # check for errors
         birthBeforeMarriage(element)
         birthBeforeDeath(element)
+        marriageBeforeDeath(element)
 
 
 # Iterate through all root child elements
@@ -141,7 +162,7 @@ for line in range(len(elements)):
     if "INDI" == args or "FAM" == args:
         if level == "0" and args == "FAM":
             INDI_FAM = False
-            #print(False)
+            # print(False)
         if tag not in INDI_DICT and INDI_FAM:
             key = tag
             INDI_DICT[key] = []
