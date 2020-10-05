@@ -209,10 +209,8 @@ for line in range(len(elements)):
                                                  "Y" if tag in VALID_TAGS else "N", args))
     if not UniqueChecker.uniqueID(ids):
         print("Individuals do not have unique IDs")
-        sys.exit()
     if not UniqueChecker.uniqueID(famID):
         print("Families do not have unique IDs")
-        sys.exit()
 
 # pPrint Table 1
 file.writelines(output)
@@ -283,12 +281,16 @@ for x, y in FAM_DICT.items():
     for x in y:
         if len(x) == 3:
             if x[0] == "CHIL":
-                # print(x[1])
-                children.append(x[1].replace("@", ""))
-        # print(children)
+
+                #print(x[1])
+                children.append(x[1].replace("@",""))
+        #print(children)
+    #Checks for unique names and birthdays
     if not UniqueChecker.uniqueFirstNameFam(children, INDI_DICT):
         print("Children do not have unique names and birthdays")
-        sys.exit()
+    #User Story 15, Children cannot have more than 15 siblings
+    if len(children) > 15:
+        print("Greater than 15 siblings")
     output2.append(children)
     FAM_TABLE.add_row(output2)
 
