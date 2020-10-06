@@ -8,7 +8,8 @@ from gedcom.element.element import Element
 from gedcom.element.individual import IndividualElement
 import UniqueChecker
 import sys
-from datetime import datetime
+from datetime import datetime as dt
+import datetime
 
 
 def check_ages(self, fathers, mothers):
@@ -68,21 +69,37 @@ elements = gedcom_parser.get_element_list()
 root_child_elements = gedcom_parser.get_root_child_elements()
 
 
+def convertGedcomDate(datestring):
+    return dt.strptime(datestring, "%d %b %Y")
+
+
+def processGedcom(file_path):
+    """Helper function for reading GEDCOM files when unit testing"""
+    gedcom_parser.parse_file(file_path, False)
+    elements = gedcom_parser.get_element_list()
+    root_child_elements = gedcom_parser.get_root_child_elements()
+
+    for element in root_child_elements:
+        if isinstance(element, IndividualElement):
+            return element
+
+
 def birthBeforeMarriage(individual):
     """US02 - Birth should occur before the marriage of an individual"""
     birthDate = individual.get_birth_data()[0]
     marriageDates = gedcom_parser.get_marriages(individual)
 
     if marriageDates and birthDate:
-        earliestMarriageDate = (min(datetime.strptime(
+        earliestMarriageDate = (min(dt.strptime(
             date[0], "%d %b %Y") for date in marriageDates))
-        birthDate = datetime.strptime(birthDate, "%d %b %Y")
+        birthDate = dt.strptime(birthDate, "%d %b %Y")
         if earliestMarriageDate < birthDate:
             print(
                 f"Error US02: Marriage of {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs before their birth")
             return False
         else:
             return True
+    return None
 
 
 def birthBeforeDeath(individual):
@@ -90,24 +107,71 @@ def birthBeforeDeath(individual):
     birthdate = individual.get_birth_data()[0]
     deathdate = individual.get_death_data()[0]
     if birthdate and deathdate:
-        birthdate = datetime.strptime(birthdate, "%d %b %Y")
-        deathdate = datetime.strptime(deathdate, "%d %b %Y")
+        birthdate = dt.strptime(birthdate, "%d %b %Y")
+        deathdate = dt.strptime(deathdate, "%d %b %Y")
         if deathdate < birthdate:
             print(
                 f"Error US03: Death of {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs before their birth")
             return False
         else:
             return True
+    return None
+
+
+def datesBeforeCurrentDate(individual):
+    """US01 - Dates (birth, marriage, divorce, death) should not be after the current date"""
+    birthdate = individual.get_birth_data()[0]
+    deathdate = individual.get_death_data()[0]
+    marriageDates = gedcom_parser.get_marriages(individual)
+
+    fams = gedcom_parser.get_families(individual)
+    childElements = [(fam.get_child_elements()) for fam in fams]
+    divorceDates = [element.get_child_elements()[0].get_value(
+    ) for elements in childElements for element in elements if element.get_tag() == "DIV"]
+
+    latestDivorceDate = max(convertGedcomDate(date)
+                            for date in divorceDates) if divorceDates else None
+    latestMarriageDate = max(convertGedcomDate(
+        date[0]) for date in marriageDates) if marriageDates else None
+    birthdate = convertGedcomDate(birthdate) if birthdate else None
+    deathdate = convertGedcomDate(deathdate) if deathdate else None
+
+    comparisonDates = [birthdate, deathdate,
+                       latestMarriageDate, latestDivorceDate]
+
+    if any(day > dt.now() for day in comparisonDates if day):
+        print(
+            f"Error US05: Date associated with {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs after current date")
+        return False
+    else:
+        return True
+
+
+def marriageBeforeDeath(individual):
+    """US05 - Marriage should occur before death of either spouse"""
+    deathDate = individual.get_death_data()[0]
+    marriageDates = gedcom_parser.get_marriages(individual)
+
+    if marriageDates and deathDate:
+        latestMarriageDate = (max(dt.strptime(
+            date[0], "%d %b %Y") for date in marriageDates))
+        deathDate = dt.strptime(deathDate, "%d %b %Y")
+        if latestMarriageDate > deathDate:
+            print(
+                f"Error US05: Marriage of {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs after their death")
+            return False
+        else:
+            return True
 
 
 for element in root_child_elements:
-
-
     if isinstance(element, IndividualElement):
 
         # check for errors
         birthBeforeMarriage(element)
         birthBeforeDeath(element)
+        marriageBeforeDeath(element)
+        datesBeforeCurrentDate(element)
 
 
 # Iterate through all root child elements
@@ -141,7 +205,7 @@ for line in range(len(elements)):
     if "INDI" == args or "FAM" == args:
         if level == "0" and args == "FAM":
             INDI_FAM = False
-            #print(False)
+            # print(False)
         if tag not in INDI_DICT and INDI_FAM:
             key = tag
             INDI_DICT[key] = []
