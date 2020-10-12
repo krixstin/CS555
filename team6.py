@@ -271,10 +271,6 @@ for line in range(len(elements)):
     else:
         output.append("<-- {}|{}|{}|{}\n".format(level, tag,
                                                  "Y" if tag in VALID_TAGS else "N", args))
-    if not UniqueChecker.uniqueID(ids):
-        print("Individuals do not have unique IDs")
-    if not UniqueChecker.uniqueID(famID):
-        print("Families do not have unique IDs")
 
 # pPrint Table 1
 file.writelines(output)
@@ -352,6 +348,11 @@ for x, y in FAM_DICT.items():
     #Checks for unique names and birthdays
     if not UniqueChecker.uniqueFirstNameFam(children, INDI_DICT):
         print("Children do not have unique names and birthdays")
+    #Checks for unique IDs
+    if not UniqueChecker.uniqueID(ids):
+        print("Individuals do not have unique IDs")
+    if not UniqueChecker.uniqueID(famID):
+        print("Families do not have unique IDs")
     #User Story 15, Children cannot have more than 15 siblings
     if len(children) > 15:
         print("Greater than 15 siblings")
