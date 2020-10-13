@@ -126,8 +126,13 @@ def datesBeforeCurrentDate(individual):
 
     fams = gedcom_parser.get_families(individual)
     childElements = [(fam.get_child_elements()) for fam in fams]
-    divorceDates = [element.get_child_elements()[0].get_value(
-    ) for elements in childElements for element in elements if element.get_tag() == "DIV"]
+
+    divorceDates = []
+    for elements in childElements:
+        for element in elements:
+            if element.get_tag() == "DIV":
+                divorceDates.append(element.get_child_elements()[0].get_value())
+
 
     latestDivorceDate = max(convertGedcomDate(date)
                             for date in divorceDates) if divorceDates else None
