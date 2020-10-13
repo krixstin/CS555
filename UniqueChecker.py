@@ -1,7 +1,7 @@
 
 def uniqueID(id):
     unique = 0
-    unique = len(set(my_id)) == len(id)
+    unique = len(set(id)) == len(id)
     if unique:
         return True
     else:
