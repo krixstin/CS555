@@ -90,9 +90,9 @@ def birthBeforeMarriage(individual):
     marriageDates = gedcom_parser.get_marriages(individual)
 
     if marriageDates and birthDate:
-        earliestMarriageDate = (min(dt.strptime(
-            date[0], "%d %b %Y") for date in marriageDates))
-        birthDate = dt.strptime(birthDate, "%d %b %Y")
+        earliestMarriageDate = (min(convertGedcomDate(
+            date[0]) for date in marriageDates))
+        birthDate = convertGedcomDate(birthDate)
         if earliestMarriageDate < birthDate:
             print(
                 f"Error US02: Marriage of {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs before their birth")
@@ -107,8 +107,8 @@ def birthBeforeDeath(individual):
     birthdate = individual.get_birth_data()[0]
     deathdate = individual.get_death_data()[0]
     if birthdate and deathdate:
-        birthdate = dt.strptime(birthdate, "%d %b %Y")
-        deathdate = dt.strptime(deathdate, "%d %b %Y")
+        birthdate = convertGedcomDate(birthdate)
+        deathdate = convertGedcomDate(deathdate)
         if deathdate < birthdate:
             print(
                 f"Error US03: Death of {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs before their birth")
@@ -126,8 +126,13 @@ def datesBeforeCurrentDate(individual):
 
     fams = gedcom_parser.get_families(individual)
     childElements = [(fam.get_child_elements()) for fam in fams]
-    divorceDates = [element.get_child_elements()[0].get_value(
-    ) for elements in childElements for element in elements if element.get_tag() == "DIV"]
+
+    divorceDates = []
+    for elements in childElements:
+        for element in elements:
+            if element.get_tag() == "DIV":
+                divorceDates.append(element.get_child_elements()[0].get_value())
+
 
     latestDivorceDate = max(convertGedcomDate(date)
                             for date in divorceDates) if divorceDates else None
@@ -153,9 +158,9 @@ def marriageBeforeDeath(individual):
     marriageDates = gedcom_parser.get_marriages(individual)
 
     if marriageDates and deathDate:
-        latestMarriageDate = (max(dt.strptime(
-            date[0], "%d %b %Y") for date in marriageDates))
-        deathDate = dt.strptime(deathDate, "%d %b %Y")
+        latestMarriageDate = (max(convertGedcomDate(
+            date[0]) for date in marriageDates))
+        deathDate = convertGedcomDate(deathDate)
         if latestMarriageDate > deathDate:
             print(
                 f"Error US05: Marriage of {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs after their death")
@@ -272,7 +277,7 @@ for line in range(len(elements)):
         output.append("<-- {}|{}|{}|{}\n".format(level, tag,
                                                  "Y" if tag in VALID_TAGS else "N", args))
 
-# pPrint Table 1
+# Print Table 1
 file.writelines(output)
 print("Outputted to Project02Output.txt file\n")
 for x, y in INDI_DICT.items():
