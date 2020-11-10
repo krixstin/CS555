@@ -229,6 +229,8 @@ def multipleBirths(family):
             print(
                 f"Error US14: More than 5 siblings born at once in {family.get_value()} family ({family.get_pointer()})")
             return False
+        else:
+            return True
 
 
 
