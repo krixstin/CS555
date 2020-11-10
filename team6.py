@@ -12,7 +12,7 @@ import sys
 from datetime import datetime as dt
 import datetime
 from collections import Counter
-
+import pandas
 
 def check_ages(self, fathers, mothers):
     for childrenAge in fathers[0]:
@@ -83,6 +83,16 @@ def processGedcom(file_path):
 
     for element in root_child_elements:
         if isinstance(element, IndividualElement):
+            return element
+
+def processGedcomFamily(file_path):
+    """Helper function for reading GEDCOM files when unit testing"""
+    gedcom_parser.parse_file(file_path, False)
+    elements = gedcom_parser.get_element_list()
+    root_child_elements = gedcom_parser.get_root_child_elements()
+
+    for element in root_child_elements:
+        if isinstance(element, FamilyElement):
             return element
 
 
@@ -174,30 +184,33 @@ def marriageBeforeDeath(individual):
 def noBigamy(individual):
     """US11 - Marriage should not occur during marriage to another spouse"""
 
-    # for element in root_child_elements:
-    #     if isinstance(element, IndividualElement):
 
-    # fams = gedcom_parser.get_families(individual)
-    # childElements = [(fam.get_child_elements()) for fam in fams]
+    families = gedcom_parser.get_families(individual)
 
+    marraigeDateRanges = []
+    for family in families:
+        marriageDate = None
+        divorceDate = None
+        for element in family.get_child_elements():
+            if element.get_tag() == "MARR":
+                marriageDate = convertGedcomDate(element.get_child_elements()[0].get_value())
 
-    # divorceDates = []
-    # for elements in childElements:
-    #     for element in elements:
-    #         if element.get_tag() == "DIV":
-    #             divorceDates.append(element.get_child_elements()[0].get_value())
+            if element.get_tag() == "DIV":
+                divorceDate = convertGedcomDate(element.get_child_elements()[0].get_value())
 
+        if divorceDate == None:
+            divorceDate = dt.now()
 
-    # latestDivorceDate = max(convertGedcomDate(date) for date in divorceDates) if divorceDates else None
-    # latestMarriageDate = max(convertGedcomDate(date[0]) for date in marriageDates) if marriageDates else None
+        marraigeDateRanges.append((marriageDate, divorceDate))
+    
+    marraigeDateIntervals = pandas.arrays.IntervalArray.from_tuples(marraigeDateRanges)
 
-    # birthdate = convertGedcomDate(birthdate) if birthdate else None
-    # deathdate = convertGedcomDate(deathdate) if deathdate else None
-
-    # marriageDates = gedcom_parser.get_marriages(individual)
-    # latestDivorceDate = max(convertGedcomDate(date))
-
-    return 
+    if marraigeDateIntervals.is_non_overlapping_monotonic:
+        return True
+    else:
+        print(
+                f"Error US11: Marriage of {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs during another marriage")
+        return False
 
 
 def multipleBirths(family):
@@ -227,11 +240,12 @@ for element in root_child_elements:
         birthBeforeDeath(element)
         marriageBeforeDeath(element)
         datesBeforeCurrentDate(element)
+        noBigamy(element)
 
     if isinstance(element, FamilyElement):
         multipleBirths(element)
 
-noBigamy(root_child_elements)
+
 
 
 # Iterate through all root child elements
