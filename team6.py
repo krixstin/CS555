@@ -6,10 +6,12 @@ from datetime import date
 from prettytable import PrettyTable
 from gedcom.element.element import Element
 from gedcom.element.individual import IndividualElement
+from gedcom.element.family import FamilyElement
 import UniqueChecker
 import sys
 from datetime import datetime as dt
 import datetime
+from collections import Counter
 
 
 def check_ages(self, fathers, mothers):
@@ -169,6 +171,54 @@ def marriageBeforeDeath(individual):
             return True
 
 
+def noBigamy(individual):
+    """US11 - Marriage should not occur during marriage to another spouse"""
+
+    # for element in root_child_elements:
+    #     if isinstance(element, IndividualElement):
+
+    # fams = gedcom_parser.get_families(individual)
+    # childElements = [(fam.get_child_elements()) for fam in fams]
+
+
+    # divorceDates = []
+    # for elements in childElements:
+    #     for element in elements:
+    #         if element.get_tag() == "DIV":
+    #             divorceDates.append(element.get_child_elements()[0].get_value())
+
+
+    # latestDivorceDate = max(convertGedcomDate(date) for date in divorceDates) if divorceDates else None
+    # latestMarriageDate = max(convertGedcomDate(date[0]) for date in marriageDates) if marriageDates else None
+
+    # birthdate = convertGedcomDate(birthdate) if birthdate else None
+    # deathdate = convertGedcomDate(deathdate) if deathdate else None
+
+    # marriageDates = gedcom_parser.get_marriages(individual)
+    # latestDivorceDate = max(convertGedcomDate(date))
+
+    return 
+
+
+def multipleBirths(family):
+    """US14 - No more than five siblings should be born at the same time"""
+
+    children = gedcom_parser.get_family_members(family, 'FAMILY_MEMBERS_TYPE_CHILDREN')
+    birthdays = []
+    for child in children:
+        birthdays.append(convertGedcomDate(child.get_birth_data()[0]))
+
+    if len(birthdays) < 5:
+        return True
+    else:
+        birthdayCounts = dict((i, birthdays.count(i)) for i in birthdays)
+        if len({k:v for (k,v) in birthdayCounts.items() if v >= 5}) > 0:
+            print(
+                f"Error US14: More than 5 siblings born at once in {family.get_value()} family ({family.get_pointer()})")
+            return False
+
+
+
 for element in root_child_elements:
     if isinstance(element, IndividualElement):
 
@@ -177,6 +227,11 @@ for element in root_child_elements:
         birthBeforeDeath(element)
         marriageBeforeDeath(element)
         datesBeforeCurrentDate(element)
+
+    if isinstance(element, FamilyElement):
+        multipleBirths(element)
+
+noBigamy(root_child_elements)
 
 
 # Iterate through all root child elements
