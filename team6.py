@@ -6,11 +6,13 @@ from datetime import date
 from prettytable import PrettyTable
 from gedcom.element.element import Element
 from gedcom.element.individual import IndividualElement
+from gedcom.element.family import FamilyElement
 import UniqueChecker
 import sys
 from datetime import datetime as dt
 import datetime
-
+from collections import Counter
+import pandas
 
 def check_ages(self, fathers, mothers):
     for childrenAge in fathers[0]:
@@ -81,6 +83,16 @@ def processGedcom(file_path):
 
     for element in root_child_elements:
         if isinstance(element, IndividualElement):
+            return element
+
+def processGedcomFamily(file_path):
+    """Helper function for reading GEDCOM files when unit testing"""
+    gedcom_parser.parse_file(file_path, False)
+    elements = gedcom_parser.get_element_list()
+    root_child_elements = gedcom_parser.get_root_child_elements()
+
+    for element in root_child_elements:
+        if isinstance(element, FamilyElement):
             return element
 
 
@@ -169,6 +181,59 @@ def marriageBeforeDeath(individual):
             return True
 
 
+def noBigamy(individual):
+    """US11 - Marriage should not occur during marriage to another spouse"""
+
+
+    families = gedcom_parser.get_families(individual)
+
+    marraigeDateRanges = []
+    for family in families:
+        marriageDate = None
+        divorceDate = None
+        for element in family.get_child_elements():
+            if element.get_tag() == "MARR":
+                marriageDate = convertGedcomDate(element.get_child_elements()[0].get_value())
+
+            if element.get_tag() == "DIV":
+                divorceDate = convertGedcomDate(element.get_child_elements()[0].get_value())
+
+        if divorceDate == None:
+            divorceDate = dt.now()
+
+        marraigeDateRanges.append((marriageDate, divorceDate))
+    
+    marraigeDateIntervals = pandas.arrays.IntervalArray.from_tuples(marraigeDateRanges)
+
+    if marraigeDateIntervals.is_non_overlapping_monotonic:
+        return True
+    else:
+        print(
+                f"Error US11: Marriage of {individual.get_name()[0]} {individual.get_name()[1]} ({individual.get_pointer()}) occurs during another marriage")
+        return False
+
+
+def multipleBirths(family):
+    """US14 - No more than five siblings should be born at the same time"""
+
+    children = gedcom_parser.get_family_members(family, 'FAMILY_MEMBERS_TYPE_CHILDREN')
+    birthdays = []
+    for child in children:
+        birthdays.append(convertGedcomDate(child.get_birth_data()[0]))
+
+    if len(birthdays) < 5:
+        return True
+    else:
+        birthdayCounts = dict((i, birthdays.count(i)) for i in birthdays)
+        if len({k:v for (k,v) in birthdayCounts.items() if v >= 5}) > 0:
+            print(
+                f"Error US14: More than 5 siblings born at once in {family.get_value()} family ({family.get_pointer()})")
+            return False
+        else:
+            return True
+
+
+
 for element in root_child_elements:
     if isinstance(element, IndividualElement):
 
@@ -177,6 +242,12 @@ for element in root_child_elements:
         birthBeforeDeath(element)
         marriageBeforeDeath(element)
         datesBeforeCurrentDate(element)
+        noBigamy(element)
+
+    if isinstance(element, FamilyElement):
+        multipleBirths(element)
+
+
 
 
 # Iterate through all root child elements

@@ -5,10 +5,14 @@ from datetime import datetime
 
 import os
 import sys
-currentdir = os.path.dirname(os.path.realpath(__file__))
-parentdir = os.path.dirname(currentdir)
-sys.path.append(parentdir)
+sys.path.append('.')
 import team6
+
+# currentdir = os.path.dirname(os.path.realpath(__file__))
+# parentdir = os.path.dirname(currentdir)
+# sys.path.append(parentdir)
+# import team6
+
 
 class TestBirthBeforeDeath(unittest.TestCase):
     def test_correct(self):
@@ -60,6 +64,25 @@ class TestMarriageBeforeDeath(unittest.TestCase):
     def test_none(self):
         self.assertIsNone(team6.marriageBeforeDeath(team6.processGedcom(
             "tests/GEDCOM files for unit testing/US01-US05/test05.ged")), 'Death or marriage records missing')
+
+class TestNoBigamy(unittest.TestCase):
+    def test_correct(self):
+        self.assertTrue(team6.noBigamy(team6.processGedcom(
+            "tests/GEDCOM files for unit testing/US11-US14/test01.ged")), 'Divorce always came before remarrage')
+
+    def test_incorrect(self):
+        self.assertFalse(team6.noBigamy(team6.processGedcom(
+            "tests/GEDCOM files for unit testing/US11-US14/test02.ged")), 'Bigamy occurred')
+
+
+class TestMultipleBirths(unittest.TestCase):
+    def test_correct(self):
+        self.assertTrue(team6.multipleBirths(team6.processGedcomFamily(
+            "tests/GEDCOM files for unit testing/US11-US14/test03.ged")), 'Less than 5 births occurred at once')
+
+    def test_incorrect(self):
+        self.assertFalse(team6.multipleBirths(team6.processGedcomFamily(
+            "tests/GEDCOM files for unit testing/US11-US14/test04.ged")), 'More than 5 births occurred at once')
 
 
 if __name__ == '__main__':
